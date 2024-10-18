@@ -1,0 +1,13 @@
+LICENSE
+README.md
+pyproject.toml
+src/eipi/__init__.py
+src/eipi/cli.py
+src/eipi/config.py
+src/eipi/parser.py
+src/eipi.egg-info/PKG-INFO
+src/eipi.egg-info/SOURCES.txt
+src/eipi.egg-info/dependency_links.txt
+src/eipi.egg-info/entry_points.txt
+src/eipi.egg-info/requires.txt
+src/eipi.egg-info/top_level.txt

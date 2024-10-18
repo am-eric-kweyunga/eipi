@@ -1,0 +1,42 @@
+[project]
+name = "eipi"
+version = "0.0.1"
+authors = [
+{ name = "Eric Kweyunga", email = "maverickweyunga@gmail.com" },
+]
+description = "A CLI tool for simulating and creating API's"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "click",
+    "flask",
+    "python-dotenv"
+]
+
+[project.urls]
+Homepage = "https://github.com/aftertechnologies/eipi"
+Issues = "https://github.com/aftertechnologies/eipi/issues"
+
+[tool.sphinx]
+project = "eipi"
+author = "Eric Kweyunga"
+version = "0.0.1"
+release = "0.0.1"
+
+[tool.black]
+line-length = 88
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project.scripts]
+eipi = "eipi.cli:cli"

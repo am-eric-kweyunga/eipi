@@ -1,0 +1,169 @@
+// Sarufi chatbot middleware using Eipi Framework
+
+[
+    {
+        "name": "salamu",
+        "method": "POST",
+        "route": "/greetings",
+        "description": "Salamu za awali",
+        "response": {
+            "status": 200,
+            "send_reply_button": {
+                "type": "button",
+                "body": {"text": "Habari! Karibu kwenye huduma yetu ya magezeti, bofya asante kuendelea"},
+                "action": {
+                    "buttons": [
+                        {
+                            "type": "reply",
+                            "reply": {
+                                "id": "1",
+                                "title": "Asante"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "name": "chaguzi_ya_gazeti",
+        "method": "POST",
+        "route": "/chagua",
+        "description": "Anzisha malipo ya magazeti",
+        "response": {
+            "status": 200,
+            "send_button": {
+                "body": "Siku ya leo kuna magazeti yafuatayo. Tafadhali chagua moja ili kuendelea na malipo:",
+                "action": {
+                    "button": "Choose your magazine",
+                    "sections": [
+                        {
+                            "title": "Chagua gazeti kati ya haya",
+                            "rows": [
+                                {
+                                    "id": "1500",
+                                    "title": "1. Mwananchi - 1,500 TZS",
+                                    "description": "Gazeti leo la Mwananchi kwa bei ya TZS 1,500"
+                                },
+                                {
+                                    "id": "2000",
+                                    "title": "2. The Citizen - 2,000 TZS",
+                                    "description": "Gazeti leo la The Citizen kwa bei ya TZS 2,000"
+                                },
+                                {
+                                    "id": "1800",
+                                    "title": "3. Ijumaa - 1,800 TZS",
+                                    "description": "Gazeti leo la Ijumaa kwa bei ya TZS 1,800"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "name": "malipo",
+        "method": "POST",
+        "route": "/malipo",
+        "description": "Anzisha malipo ya magazeti",
+
+        "expected_data": {
+            "gazeti": "chaguo_la_gazeti",
+            "namba_ya_simu": "namba_ya_simu",
+            "chat_id": "chat_id"
+        },
+
+        "payload": {
+            "action": {
+                "url": "https://api.zeno.africa",
+                "method": "POST",
+                "body": {
+                    "create_order": 1,
+                    "buyer_email": "maverickweyunga@gmail.com",
+                    "buyer_name": "EricKweyunga",
+                    "buyer_phone": "{{ namba_ya_simu }}",
+                    "amount": "{{ gazeti }}",
+                    "account_id": "zp81615",
+                    "api_key": "",
+                    "secret_key": ""
+                }
+            },
+            "response_variables": {
+                "status": "status",
+                "message": "message",
+                "order_id": "order_id"
+            }
+        },
+
+        "response": {
+            "status": 200
+        },
+
+        "use_database": "True",
+        "database": {
+            "actions": [
+                {
+                    "action": "insert",
+                    "table": "malipo",
+                    "data": {
+                        "chat_id": "{{ chat_id }}",
+                        "chaguo_la_gazeti": "{{ chaguo_la_gazeti }}",
+                        "namba_ya_simu": "{{ namba_ya_simu }}",
+                        "order_id": "{{ order_id }}",
+                        "status": "{{ status }}"
+                    }
+                }
+                
+            ]
+        }
+    },
+    {
+        "name": "thibitisha_malipo",
+        "method": "POST",
+        "route": "/thibitisha_malipo",
+        "description": "Thibitisha malipo ya magazeti",
+
+        "expected_data": {
+            "chat_id": "chat_id"
+        },
+
+        "expected_data": {
+            "chat_id": "chat_id"
+        },
+
+        "response": {
+            "status": 200
+        },
+
+        "use_database": "True",
+        "database": {
+            "actions": [
+                {
+                    "action": "select",
+                    "table": "malipo",
+                    "query_variable": "chat_id",
+                    "query": "{{ chat_id }}"
+                }
+            ]
+        },
+
+        "payload": {
+            "action": {
+                "url": "https://api.zeno.africa/status",
+                "method": "POST",
+                "body": {
+                    "check_status": 1,
+                    "order_id": "{{ order_id }}",
+                    "api_key": "",
+                    "secret_key": ""
+                }
+            },
+            "response_variables": {
+                "message": "message",
+                "payment_status": "payment_status"
+            }
+        }
+    }
+
+]
