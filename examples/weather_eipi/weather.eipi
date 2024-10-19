@@ -1,0 +1,20 @@
+[
+    {
+        "name": "Whether",
+        "description": "This is my whether API",
+        "method": "GET",
+        "route": "/eipi/weather",
+
+        "payload": {
+            "action": {
+                "url": "https://api.weatherapi.com/v1/current.json?key={{ env_WEATHER_API_KEY }}&q=Tanzania&aqi=no",
+                "method": "GET"
+            },
+            "append_to_response": "True"
+        },
+
+        "response": {
+            "status": 200
+        }
+    }
+]

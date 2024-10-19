@@ -4,11 +4,16 @@ import re
 from typing import List
 from eipi.config import CONFIG_FILE, load_config
 from eipi.errors import EipiConfigError, EipiParserError
+from eipi.modules.eipi_env import initialize, get_env  # Import env-related functions
+from eipi import module
+# Global variable to hold env configurations
+ENV_CONFIG = {}
 
 
 class Eipi:
     def __init__(self):
-        # Load configuration and set up the parser
+        """Initialize the environment and load the config."""
+        initialize()  # Load environment configurations
         self.config = self._load_config()
         self.parser = EipiParser(self.config)
 
@@ -66,6 +71,7 @@ class EipiParser:
                 "Config file not found. Please initialize the Eipi Application by running:\n\n  eipi init"
             )
 
+
     def _resolve_filepath(self) -> str:
         """Resolve the correct file path with .eipi or .ei extension."""
         filepath = self.config["root"]
@@ -99,6 +105,32 @@ class EipiParser:
         content = re.sub(multi_line_comment_pattern, replacer, content, flags=re.DOTALL)
 
         return content.strip()
+
+    def _resolve_env_placeholders(self, value: str) -> str:
+        """Replace `{{ env_VARIABLE_NAME }}` with environment variables."""
+        pattern = r"\{\{ env_(\w+) \}\}"
+
+        def replacer(match):
+            env_var = match.group(1)
+            env_value = get_env(env_var)
+            if env_value is None:
+                raise EipiParserError(f"Missing environment variable: {env_var}")
+            return env_value
+
+        return re.sub(pattern, replacer, value)
+
+    def _replace_placeholders_in_structure(self, struct):
+        """Recursively resolve environment placeholders in nested structures."""
+        if isinstance(struct, dict):
+            return {
+                k: self._replace_placeholders_in_structure(v) for k, v in struct.items()
+            }
+        elif isinstance(struct, list):
+            return [self._replace_placeholders_in_structure(item) for item in struct]
+        elif isinstance(struct, str):
+            return self._resolve_env_placeholders(struct)
+        else:
+            return struct
 
     def validate_route(self, route: dict):
         """Validate a route's structure and content."""
@@ -143,16 +175,12 @@ class EipiParser:
                 raise EipiParserError("Invalid format. Expected a list of routes.")
 
             for index, route in enumerate(data):
-                try:
-                    self.validate_route(route)  # Validate the current route
-                    self.routes.append(route)  # Append validated route
-                    self.validated_routes.append(route)  # Append validated route
-                    if index == 0:
-                        self.validated_routes.pop(
-                            0
-                        )  # Forget the first route after validation
-                except EipiParserError as e:
-                    raise  # Stop execution on validation error
+                route = self._replace_placeholders_in_structure(route)
+                self.validate_route(route)
+                self.routes.append(route)
+                self.validated_routes.append(route)
+                if index == 0:
+                    self.validated_routes.pop(0)
 
         except json.JSONDecodeError as e:
             raise EipiParserError(f"Error parsing JSON: {e}")
@@ -161,5 +189,4 @@ class EipiParser:
 
     def get_routes(self) -> List[dict]:
         """Return the parsed routes."""
-
         return self.routes

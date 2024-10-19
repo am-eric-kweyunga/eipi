@@ -26,3 +26,12 @@ class DatabaseError(Exception):
     """Exception raised for errors in the database"""
 
     pass
+
+# adding payload Error class, for internal API calls
+class EipiPayloadError(Exception):
+    """Exception raised for errors in the payload"""
+    pass
+
+class EipiEnvironmentError(Exception):
+    """Exception raised for errors in the environment"""
+    pass

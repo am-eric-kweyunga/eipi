@@ -1,86 +1,41 @@
 import json
 import os
 import click
-import requests
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from jinja2 import Template, Environment, select_autoescape
 
-from eipi.config import BASE_DIR, RESERVED_WORDS, load_config
-from eipi.modules.database import drop_table, fetch_tables, init_db, list_tables
-from eipi.modules.helper import (
-    get_database_actions,
-    insert_data,
-    select_data,
-    update_data,
-)
+from eipi.config import BASE_DIR, load_config
+from eipi.helper_functions.payload_request import add_payload_route
+from eipi.helper_functions.request_data import request_data_with_method_specification
+
+from eipi.modules.database import drop_table, fetch_tables, init_db
+from eipi.helpers.module_database_helper import get_database_actions, insert_data, select_data, update_data
 from eipi.templates.yaml_file import config_template
 from eipi.templates.root_file import root_file_template
-from eipi.errors import EipiConfigError, EipiParserError
+from eipi.errors import EipiParserError
 from eipi.parser import Eipi
+from eipi.validators.headers import handle_accepted_headers
+from eipi.validators.requests import validate_request_data
+from eipi.validators.validate_inputs import validate_project_name
 
 # Initialize Jinja2 environment
 env = Environment(autoescape=select_autoescape(["html", "xml"]))
 
-
-def add_payload_route(payload):
-    """Create a handler function for a specific route."""
-    payload_action = payload["action"]
-    method = payload_action["method"]
-
-    if method not in ["POST", "PUT", "DELETE", "GET"]:
-        raise EipiParserError(f"Invalid HTTP method for your payload '{method}''")
-
-    try:
-        if method == "POST":
-            headers = payload_action.get("headers", None)
-            
-            print(locals())
-            
-            # Using Jinja2 to render the data payload
-            data_template = Template(json.dumps(payload_action["body"]))
-            rendered_data = data_template.render(**locals())
-            response_ = json.loads(rendered_data)
-            
-            response = requests.post(
-                url=payload_action.get("url", ""),
-                headers=headers,
-                data=response_,
-            )
-            return response
-
-        elif method == "GET":
-            response = requests.get(
-                url=payload_action["url"],
-                headers=payload_action["headers"],
-            )
-            return response
-
-    except requests.RequestException as e:
-        # Log errors to a file
-        with open("error_log.txt", "a") as log_file:
-            log_file.write(f"Error: {e}\n")
-
-    raise EipiParserError(f"Can't handle the payload '{payload_action['method']}''")
-
-
-def validate_project_name(value):
-    """Validate that the app name is not a reserved word."""
-    if value.lower() in RESERVED_WORDS:
-        raise click.BadParameter(
-            f"'{value}' is a reserved word. Please choose a different app name."
-        )
-    return value.lower()
-
-
-# CLI command group
+# CLI command group for Eipi
 @click.group()
 def cli():
     """API Builder CLI for managing .eipi files and APIs."""
     pass
 
 
-@cli.command()
+@cli.group()
+def app():
+    """Manage Eipi Applications."""
+    pass
+
+
+@app.command()
 def init():
     """Initialize a new Eipi Application."""
 
@@ -142,7 +97,7 @@ def init():
     click.echo(click.style(f"Configuration saved at: {config_file_path}", fg="yellow"))
 
 
-@cli.command()
+@app.command()
 def validate():
     """Validate the given .eipi file."""
     eipi = Eipi()
@@ -154,7 +109,7 @@ def validate():
         click.echo(click.style(f"Validation failed: {e}", fg="red"))
 
 
-@cli.command()
+@app.command()
 def show():
     """Display the routes from the .eipi file."""
     eipi = Eipi()
@@ -175,9 +130,10 @@ def show():
         click.echo(click.style(f"Error: {e}", fg="red"))
 
 
-@cli.command()
+@app.command()
 def run():
     """Run the API server using the given .eipi file."""
+
     # Load configuration from the YAML file
     config = load_config()
 
@@ -192,7 +148,10 @@ def run():
 
     # Create a Flask app instance
     app = Flask(__name__)
+
+    # More configuration for the flask app
     app.secret_key = f"{secret_key}"
+    app.json.sort_keys = False
 
     # Enable CORS if enabled in the configuration
     if cors_enabled:
@@ -210,24 +169,22 @@ def run():
         app.logger.setLevel(log_level)
 
         def create_handler(route):
-            """Create a new handler function for each route."""
+            """Create a handler function for each route."""
 
-            #################################################################
-            ## Variables from the parsed route
-            #################################################################
-
+            # Extract route details
             method = route["method"]
             response_template_str = json.dumps(route["response"])
-            response = route["response"]
-            payload = route.get("payload", None)
-
             use_database = route.get("use_database", False)
             database = route.get("database", {})
+            expected_data = route.get("expected_data", None)
 
-            #################################################################
+            # payload
+            payload = route.get("payload", None)
+            payload_action = payload.get("action", None)
 
-            # Create a handler function for each route
             def handler():
+                """Handle incoming requests."""
+                # Initialize log entry
                 log_entry = {
                     "route": route["route"],
                     "method": method,
@@ -235,98 +192,115 @@ def run():
                     "payload_response": None,
                 }
 
-                request_data = request.get_json()  # Get the request data
-                log_entry["data"] = request_data  # Log the request data
+                # Retrieve and validate request data
+                request_data = request_data_with_method_specification(method)
+                log_entry["data"] = request_data
 
-                expected_data = route.get("expected_data", None)
-                variables = {}
-
+                # Handle expected data if provided
                 if expected_data:
-                    variables = {
-                        key: request_data.get(value)
-                        for key, value in expected_data.items()
-                    }
+                    # Validate request data using the external function
+                    validation_error = validate_request_data(
+                        request_data, expected_data
+                    )
+                    if validation_error:
+                        return validation_error  # Return the error response if validation fails
+
+                    # Prepare variables from the expected data
+                    variables = (
+                        {
+                            key: request_data.get(value)
+                            for key, value in expected_data.items()
+                        }
+                        if expected_data
+                        else {}
+                    )
                     locals().update(variables)
 
-                if method == "POST":
-                    if payload:
-                        if "body" in payload["action"]:
-                            payload_body_template = Template(
-                                json.dumps(payload["action"]["body"])
-                            )
-                            payload_body = payload_body_template.render(**variables)
-                            payload["action"]["body"] = json.loads(payload_body)
-
-                        res = add_payload_route(payload)  # Make API call with the payload
-                        if res:
-                            print(res)
-                            payload_response = res.json()
-
-                            # Extract variables from payload response if defined
-                            response_variables = payload.get("response_variables", {})
-                            extracted_values = {
-                                key: payload_response.get(path, None)
-                                for key, path in response_variables.items()
-                            }
-
-                            # Update local variables with extracted values for further processing
-                            locals().update(
-                                extracted_values
-                            )  # Include response variables in locals
-
-                            # Render the response template with the updated variables
-                            response_template = Template(response_template_str)
-                            response_body = response_template.render(
-                                **locals()
-                            )  # Render response with all locals
-                            response_ = json.loads(
-                                response_body
-                            )  # Convert the rendered string back to a dictionary
-                            response.update(response_)
-
-                            # Update the main response object
-                            log_entry["payload_response"] = extracted_values
-                        else:
-                            app.logger.error("Failed to process payload.")
-                            response_ = {"error": "Failed to process payload."}
-
-                    # Log the complete log entry
-                    app.logger.info(f"Request Log: {json.dumps(log_entry, indent=4)}")
-
+                # Handle database actions if provided
                 if use_database:
-
                     actions = get_database_actions(database_config=database)
                     for action in actions:
-                        if action["action"] not in [
-                            "select",
-                            "update",
-                            "insert",
-                            "delete",
-                        ]:
+                        if action["action"] == "select":
+                            res = select_data(actions=actions, locals=locals())
+                            locals().update(res)
+                        elif action["action"] == "update":
+                            update_data(actions=actions, locals=locals())
+                        elif action["action"] == "insert":
+                            insert_data(actions=actions, locals=locals())
+                        else:
                             raise ValueError(
-                                f"Invalid database action: {action}. Allowed actions are: create, update, get, delete."
+                                f"Invalid database action: {action}. "
+                                "Allowed actions are: select, update, insert."
                             )
-                        for action in actions:
-                            if action["action"] == "select":
-                                # selection action
-                                res = select_data(actions=actions, locals=locals())
-                                locals().update(res)
-                            elif action["action"] == "update":
-                                # update action
-                                update_data(actions=actions, locals=locals())
 
-                            elif action["action"] == "insert":
-                                # insert action
-                                insert_data(actions=actions, locals=locals())
-                            # elif action == "delete":
-                            #     delete action
-                            #     res = delete_data(actions=actions)
-                            else:
-                                raise ValueError(
-                                    f"Invalid database action: {action}. Allowed actions are: create, update, get, delete."
-                                )
+                # Handling payloads if provided
+                if payload:
+                    if "body" in payload_action:
+                        payload_body_template = Template(
+                            json.dumps(payload_action.get("body", {}, None))
+                        )
+                        payload_body = payload_body_template.render(**variables)
+                        payload_action["body"] = json.loads(payload_body)
 
-                return jsonify(response), response.get("status", 200)
+                # Process POST requests with payloads
+                if method == "POST" and payload:
+                    # making the internal API call using the payload
+                    res = add_payload_route(payload)
+
+                    # if the internal API call is done, then we can return the response or error
+                    if res:
+                        payload_response = res.json()
+                        log_entry["payload_response"] = payload_response
+
+                        # Extract and update variables from the payload response
+                        response_variables = payload.get("response_variables", {})
+                        extracted_values = {
+                            key: payload_response.get(path, None)
+                            for key, path in response_variables.items()
+                        }
+                        locals().update(extracted_values)
+
+                    else:
+                        app.logger.error("Failed to process payload.")
+                        return jsonify({"error": "Failed to process payload."}), 500
+
+                    # Render the response template with updated variables
+                    response_template = Template(response_template_str)
+                    response_body = response_template.render(**locals())
+                    response_ = json.loads(response_body)
+                    route["response"].update(response_)
+
+                    if payload.get("append_to_response") == True:
+                        route["response"].update(res.json())
+
+                # Process GET requests
+                elif method == "GET":
+                    # If payload is provided, make the internal API call
+                    if payload:
+                        res = add_payload_route(payload)
+
+                        # If the internal API call is done, update the outer response
+                        if res:
+                            log_entry["payload_response"] = res.json()
+
+                            # Append internal API call response to the outer response if specified
+                            if payload.get("append_to_response", None) == "True":
+                                route["response"].update(res.json())
+
+                    if response_template_str:
+                        response_template = Template(response_template_str)
+                        response_body = response_template.render(**locals())
+                        response_ = json.loads(response_body)
+                        route["response"].update(response_)
+
+                    # Handling accepted headers
+                    return handle_accepted_headers(
+                        response_data=route["response"], request=request
+                    )
+
+                # Log the request and return the response
+                app.logger.info(f"Request Log: {json.dumps(log_entry, indent=4)}")
+                return jsonify(route["response"]), route["response"].get("status", 200)
 
             return handler
 
@@ -340,6 +314,15 @@ def run():
             # Create a fresh handler for each route
             handler = create_handler(route)
             endpoint = f"{route['method']}_{route['route']}".replace("/", "_")
+            headers = route.get("headers", {})
+
+            # after_request decorator to set response headers
+            @app.after_request
+            def set_reponse_headers(response):
+                response.headers.update(headers)
+                return response
+
+            # Register the route with the Flask app
             app.add_url_rule(
                 route["route"],
                 methods=[route["method"]],
@@ -348,18 +331,40 @@ def run():
             )
 
         click.echo(click.style(f"Starting server on http://{host}:{port}", fg="green"))
-
         app.run(host=host, port=port, debug=True)
 
     except EipiParserError as e:
         click.echo(click.style(f"Error: {e}", fg="red"))
 
 
-# database commands
-cli.add_command(list_tables)
-cli.add_command(init_db)
-cli.add_command(fetch_tables)
-cli.add_command(drop_table)
+@cli.group()
+def database():
+    """Eipi Database Operations."""
+    pass
+
+
+@database.command()
+def initdb():
+    """Initialize the database."""
+    click.echo("Initializing the database...")
+    init_db()
+
+
+@database.command()
+def dropdb():
+    """Drop the database."""
+    click.echo("Dropping the database...")
+    drop_table()
+
+
+@database.command()
+def showtables():
+    """Show tables in the database."""
+    tables = fetch_tables()
+    click.echo("Tables in the database:")
+    for table in tables:
+        click.echo(f"- {table}")
+
 
 # Entry point for the CLI
 if __name__ == "__main__":

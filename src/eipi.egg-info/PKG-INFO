@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: eipi
-Version: 0.0.1
+Version: 0.1.1
 Summary: A CLI tool for simulating and creating API's
 Author-email: Eric Kweyunga <maverickweyunga@gmail.com>
 Project-URL: Homepage, https://github.com/aftertechnologies/eipi
@@ -13,6 +13,12 @@ Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: click
 Requires-Dist: flask
+Requires-Dist: pyyaml
+Requires-Dist: tinydb
+Requires-Dist: flask_cors
 Requires-Dist: python-dotenv
+Requires-Dist: requests
 
-# Eipi
+# README.md
+
+## Visit the [website](https://github.com/am-eric-kweyunga/eipi) for more information

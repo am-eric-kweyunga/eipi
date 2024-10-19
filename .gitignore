@@ -1,2 +1,6 @@
-.venv/*
+/.venv/*
 .env.local
+/build/*
+/dist/*
+/examples/*
+/src/eipi.egg-info/*

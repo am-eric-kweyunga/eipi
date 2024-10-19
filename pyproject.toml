@@ -1,6 +1,6 @@
 [project]
 name = "eipi"
-version = "0.0.1"
+version = "0.1.1"
 authors = [
 { name = "Eric Kweyunga", email = "maverickweyunga@gmail.com" },
 ]
@@ -15,7 +15,11 @@ classifiers = [
 dependencies = [
     "click",
     "flask",
-    "python-dotenv"
+    "pyyaml",
+    "tinydb",
+    "flask_cors",
+    "python-dotenv",
+    "requests"
 ]
 
 [project.urls]
