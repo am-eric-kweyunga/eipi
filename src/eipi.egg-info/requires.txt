@@ -1,7 +1,0 @@
-click
-flask
-pyyaml
-tinydb
-flask_cors
-python-dotenv
-requests
