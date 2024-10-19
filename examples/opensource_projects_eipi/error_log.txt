@@ -1,0 +1,2 @@
+Error: Request exception occurred: No connection adapters were found for 'GET https://libraries.io/api/platforms?api_key=2fccfad747c6c31eee180ef35852c39c'
+Error: Request exception occurred: No connection adapters were found for 'GET https://libraries.io/api/:platforms?api_key=2fccfad747c6c31eee180ef35852c39c'

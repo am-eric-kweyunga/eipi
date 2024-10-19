@@ -1,0 +1,40 @@
+// opensource.eipi
+
+[
+    {
+        "name": "Opensource Projects EIPI DSP endpoint",
+        "description": "This is a opensource API endpoint that returns list of opensource packages or projects",
+        "route": "/opensource_platforms",
+        "method": "GET",
+
+        "payload": {
+            "action": {
+                "method": "GET",
+                "url": "https://libraries.io/api/platforms?api_key={{ env_API_KEY }}"
+            },
+            "append_to_response": "True"
+        },
+
+        "response": {
+            "status": 200
+        }
+    },
+    {
+        "name": "Opensource Projects EIPI DSP endpoint to fetch one project",
+        "description": "This is a opensource API endpoint that returns list of opensource packages or projects",
+        "route": "/opensource_pypi",
+        "method": "GET",
+
+        "payload": {
+            "action": {
+                "method": "GET",
+                "url": "https://libraries.io/api/Pypi/{{ env_PROJECT_NAME }}?api_key={{ env_API_KEY }}"
+            },
+            "append_to_response": "True"
+        },
+
+        "response": {
+            "status": 200
+        }
+    }
+]
