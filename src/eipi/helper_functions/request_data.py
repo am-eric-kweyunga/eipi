@@ -18,6 +18,7 @@ def request_data_with_method_specification(method):
             return data
         elif method == "POST" or method == "PUT" or method == "DELETE":
             data = request.get_json()
+            print(data)
             return data
     except Exception as e:
         raise e

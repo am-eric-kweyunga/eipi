@@ -1,0 +1,107 @@
+// Sarufi chatbot middleware using Eipi Framework
+
+[
+    {
+        "name": "salamu",
+        "method": "POST",
+        "route": "/greetings",
+        "description": "Salamu za awali",
+        "response": {
+            "status": 200,
+            "send_reply_button": {
+                "type": "button",
+                "body": {"text": "Habari! Karibu kwenye huduma yetu ya magezeti, bofya asante kuendelea"},
+                "action": {
+                    "buttons": [
+                        {
+                            "type": "reply",
+                            "reply": {
+                                "id": "1",
+                                "title": "Asante"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    {
+        "name": "chaguzi_ya_gazeti",
+        "method": "POST",
+        "route": "/chagua",
+        "description": "Anzisha malipo ya magazeti",
+        "response": {
+            "send_button": {
+                "body": "Siku ya leo kuna magazeti yafuatayo. Tafadhali chagua moja ili kuendelea na malipo:",
+                "action": {
+                    "button": "Choose your magazine",
+                    "sections": [
+                        {
+                            "title": "Chagua gazeti kati ya haya",
+                            "rows": [
+                                {
+                                    "id": "500",
+                                    "title": "1. Mwananchi - 1,500 TZS",
+                                    "description": "Gazeti leo la Mwananchi kwa bei ya TZS 1,500"
+                                },
+                                {
+                                    "id": "500",
+                                    "title": "2. The Citizen - 2,000 TZS",
+                                    "description": "Gazeti leo la The Citizen kwa bei ya TZS 2,000"
+                                },
+                                {
+                                    "id": "500",
+                                    "title": "3. Ijumaa - 1,800 TZS",
+                                    "description": "Gazeti leo la Ijumaa kwa bei ya TZS 1,800"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            },
+            "status": 200
+        }
+    },
+    {
+        "name": "malipo",
+        "method": "POST",
+        "route": "/malipo",
+        "description": "Anzisha malipo ya magazeti",
+
+        "expected_data": {
+            "chaguo_la_gazeti": "str",
+            "namba_ya_simu": "str",
+            "chat_id": "str"
+        },
+
+        "payload": {
+            "action": {
+                "url": "https://api.zeno.africa",
+                "method": "POST",
+                "body": {
+                    "create_order": 1,
+                    "buyer_email": "maverickweyunga@gmail.com",
+                    "buyer_name": "EricKweyunga",
+                    "buyer_phone": "{{ namba_ya_simu }}",
+                    "amount": "{{ chaguo_la_gazeti }}",
+                    "account_id": "zp81615",
+                    "api_key": "",
+                    "secret_key": ""
+                }
+            },
+            "response_variables": {
+                "status": "str",
+                "message": "str",
+                "order_id": "str"
+            },
+            "append_to_response": "True"
+        },
+        
+        "response": {
+            "status": 200
+        }
+
+       
+    }
+
+]

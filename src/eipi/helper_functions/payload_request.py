@@ -10,7 +10,7 @@ env = Environment(autoescape=select_autoescape(["html", "xml"]))
 VALID_HTTP_METHODS = ["POST", "PUT", "DELETE", "GET"]
 
 
-def add_payload_route(payload):
+def add_payload_route(payload: dict):
     """Send a request based on the provided payload action.
 
     Args:
@@ -23,7 +23,7 @@ def add_payload_route(payload):
     Returns:
         Response: The response from the HTTP request.
     """
-    payload_action = payload.get("action")
+    payload_action = payload["action"]
     if not payload_action:
         raise EipiPayloadError("Missing 'action' in payload.")
 
@@ -84,8 +84,11 @@ def perform_post_request(url, headers, data):
     Returns:
         Response: The response from the POST request.
     """
-    response = requests.post(url, headers=headers, json=data)
-    response.raise_for_status()  # Raise an error for bad responses
+    try:
+        response = requests.post(url, headers=headers, data=data)
+        response.raise_for_status()
+    except Exception as e:
+        raise e
     return response
 
 

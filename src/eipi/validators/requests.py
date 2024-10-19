@@ -1,5 +1,6 @@
 # validators.py
 
+import click
 from flask import jsonify
 
 # Mapping of string-based types to actual Python types
@@ -27,19 +28,20 @@ def validate_request_data(request_data, expected_data):
         None: If valid.
     """
     if not isinstance(request_data, dict):
+        click.echo(f"Invalid JSON format: {request_data}")
         return jsonify({"error": "Invalid JSON format."}), 400
 
     # Check for missing and extra keys
     missing_keys = [key for key in expected_data if key not in request_data]
-    extra_keys = [key for key in request_data if key not in expected_data]
+    # extra_keys = [key for key in request_data if key not in expected_data]
 
-    if missing_keys or extra_keys:
+    if missing_keys:
+        click.echo(f"Missing keys: {missing_keys}")
         return (
             jsonify(
                 {
                     "error": "Invalid data structure.",
                     "missing_keys": missing_keys,
-                    "extra_keys": extra_keys,
                     "suggestion": "Ensure the request contains all required keys and no extra keys.",
                 }
             ),
@@ -54,6 +56,7 @@ def validate_request_data(request_data, expected_data):
         expected_type = TYPE_MAP.get(type_str)
 
         if expected_type is None:
+            click.echo(f"Unknown type '{type_str}' for key '{key}'")
             return jsonify({"error": f"Unknown type '{type_str}' for key '{key}'"}), 400
 
         actual_value = request_data.get(key)
@@ -69,6 +72,10 @@ def validate_request_data(request_data, expected_data):
             )
 
     if type_mismatches:
+        
+        # using click to print the error message
+        click.echo(f"Type mismatch for one or more fields: {type_mismatches}")
+        
         return (
             jsonify(
                 {

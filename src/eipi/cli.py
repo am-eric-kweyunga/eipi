@@ -10,7 +10,12 @@ from eipi.helper_functions.payload_request import add_payload_route
 from eipi.helper_functions.request_data import request_data_with_method_specification
 
 from eipi.modules.database import drop_table, fetch_tables, init_db
-from eipi.helpers.module_database_helper import get_database_actions, insert_data, select_data, update_data
+from eipi.helpers.module_database_helper import (
+    get_database_actions,
+    insert_data,
+    select_data,
+    update_data,
+)
 from eipi.templates.yaml_file import config_template
 from eipi.templates.root_file import root_file_template
 from eipi.errors import EipiParserError
@@ -21,6 +26,7 @@ from eipi.validators.validate_inputs import validate_project_name
 
 # Initialize Jinja2 environment
 env = Environment(autoescape=select_autoescape(["html", "xml"]))
+
 
 # CLI command group for Eipi
 @click.group()
@@ -204,16 +210,17 @@ def run():
                     if validation_error:
                         return validation_error  # Return the error response if validation fails
 
-                    # Prepare variables from the expected data
+                    # Extract variables based on the expected data
                     variables = (
                         {
-                            key: request_data.get(value)
-                            for key, value in expected_data.items()
+                            key: request_data.get(key)
+                            for key, expected_type in expected_data.items()
                         }
                         if expected_data
                         else {}
                     )
-                    locals().update(variables)
+                    print(request_data)
+                    locals().update(**variables)
 
                 # Handle database actions if provided
                 if use_database:
@@ -236,22 +243,24 @@ def run():
                 if payload:
                     # Process payload actions
                     payload_action = payload.get("action", None)
-                    
+
                     # if the payload action is defined, then we can return the response or error
                     if "body" in payload_action:
                         payload_body_template = Template(
-                            json.dumps(payload_action.get("body", {}, None))
+                            json.dumps(payload_action.get("body", None))
                         )
                         payload_body = payload_body_template.render(**variables)
                         payload_action["body"] = json.loads(payload_body)
 
                 # Process POST requests with payloads
-                if method == "POST" and payload:
+                if method == "POST":
                     # making the internal API call using the payload
-                    res = add_payload_route(payload)
+                    res = None
+                    if payload is not None:
+                        res = add_payload_route(payload)
 
                     # if the internal API call is done, then we can return the response or error
-                    if res:
+                    if res is not None:
                         payload_response = res.json()
                         log_entry["payload_response"] = payload_response
 
@@ -263,18 +272,18 @@ def run():
                         }
                         locals().update(extracted_values)
 
-                    else:
-                        app.logger.error("Failed to process payload.")
-                        return jsonify({"error": "Failed to process payload."}), 500
+                        # Append internal API call response to the outer response if specified
+                        if payload.get("append_to_response", None) == "True":
+                            incoming_data = res.json()
+                            route["response"].update(
+                                {"request_data": {"data": incoming_data}}
+                            )
 
                     # Render the response template with updated variables
                     response_template = Template(response_template_str)
                     response_body = response_template.render(**locals())
                     response_ = json.loads(response_body)
                     route["response"].update(response_)
-
-                    if payload.get("append_to_response") == True:
-                        route["response"].update(res.json())
 
                 # Process GET requests
                 elif method == "GET":
@@ -289,11 +298,9 @@ def run():
                             # Append internal API call response to the outer response if specified
                             if payload.get("append_to_response", None) == "True":
                                 incoming_data = res.json()
-                                route["response"].update({
-                                    "request_data": {
-                                        "data": incoming_data
-                                    }
-                                })
+                                route["response"].update(
+                                    {"request_data": {"data": incoming_data}}
+                                )
 
                     if response_template_str:
                         response_template = Template(response_template_str)

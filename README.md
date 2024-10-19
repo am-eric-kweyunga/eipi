@@ -15,3 +15,4 @@ Eipi is a declarative language for building modular APIs effortlessly. With Eipi
 
 - **[Reveal Eipi in Github](https://github.com/am-eric-kweyunga/eipi)** explore more about Eipi
 - **[Learn how to install](https://am-eric-kweyunga.github.io/eipi-docs/)** explore more about Eipi
+  
