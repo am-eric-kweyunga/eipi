@@ -2,3 +2,4 @@
 dist/
 src/eipi.egg-info/
 .idea/
+**/__pycache__/

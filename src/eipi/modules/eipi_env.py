@@ -11,23 +11,18 @@ def load_env_configurations():
     global ENV_CONFIG
     try:
         if not os.path.exists(".env.eipi"):
-            raise EipiEnvironmentError("The .env.eipi file is missing.")
-
+            pass
         # Load the env variables from the file
         if load_dotenv(".env.eipi"):
             ENV_CONFIG = {key: os.getenv(key) for key in os.environ.keys()}
         else:
-            click.echo(click.style("No environment configurations found.", fg="yellow"))
             return None
 
     except Exception as e:
         click.echo(
             click.style(
-                "An unexpected error occurred while loading the config.", fg="red"
+                f"An unexpected error occurred while loading the config: {e}", fg="red"
             )
-        )
-        raise EipiEnvironmentError(
-            f"Unexpected error in loading environment config: {e}"
         )
 
     return ENV_CONFIG
@@ -39,8 +34,6 @@ def initialize():
 
     if env_config:
         click.echo(click.style("Loading environment variables...", fg="green"))
-    else:
-        click.echo(click.style("No environment configurations found.", fg="yellow"))
 
 
 def get_env(key: str):

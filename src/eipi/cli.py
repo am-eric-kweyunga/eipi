@@ -180,7 +180,6 @@ def run():
 
             # payload
             payload = route.get("payload", None)
-            payload_action = payload.get("action", None)
 
             def handler():
                 """Handle incoming requests."""
@@ -235,6 +234,10 @@ def run():
 
                 # Handling payloads if provided
                 if payload:
+                    # Process payload actions
+                    payload_action = payload.get("action", None)
+                    
+                    # if the payload action is defined, then we can return the response or error
                     if "body" in payload_action:
                         payload_body_template = Template(
                             json.dumps(payload_action.get("body", {}, None))
@@ -285,7 +288,12 @@ def run():
 
                             # Append internal API call response to the outer response if specified
                             if payload.get("append_to_response", None) == "True":
-                                route["response"].update(res.json())
+                                incoming_data = res.json()
+                                route["response"].update({
+                                    "request_data": {
+                                        "data": incoming_data
+                                    }
+                                })
 
                     if response_template_str:
                         response_template = Template(response_template_str)
@@ -330,7 +338,7 @@ def run():
                 endpoint=endpoint,
             )
 
-        click.echo(click.style(f"Starting server on http://{host}:{port}", fg="green"))
+        click.echo(click.style(f"API health check...", fg="green"))
         app.run(host=host, port=port, debug=True)
 
     except EipiParserError as e:

@@ -1,7 +1,7 @@
 [
     {
-        "name": "Whether",
-        "description": "This is my whether API",
+        "name": "Weather",
+        "description": "This is my weather API",
         "method": "GET",
         "route": "/eipi/weather",
 
