@@ -1,5 +1,5 @@
 # environment
-.env.eipi/
+.env.eipi
 
 # virtual environment
 .venv/
