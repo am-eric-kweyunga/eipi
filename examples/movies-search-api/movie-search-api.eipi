@@ -1,0 +1,20 @@
+// making our query title to be Inception
+
+[
+  {
+    "name": "MovieSearch",
+    "description": "Search for movies using OMDb API",
+    "method": "GET",
+    "route": "/movies",
+    "payload": {
+      "action": {
+        "url": "http://www.omdbapi.com/?apikey={{ env_OMDB_API_KEY }}&s=Inception",
+        "method": "GET"
+      },
+      "append_to_response": "True"
+    },
+    "response": {
+      "status": 200
+    }
+  }
+]

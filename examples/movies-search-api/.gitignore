@@ -1,0 +1,8 @@
+# environment
+.env.eipi/
+
+# virtual environment
+.venv/
+
+# Error logs
+error_log.txt

@@ -1,6 +1,6 @@
 [project]
 name = "eipi"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
 { name = "Eric Kweyunga", email = "maverickweyunga@gmail.com" },
 ]
@@ -29,8 +29,8 @@ Issues = "https://github.com/am-eric-kweyunga/eipi/issues"
 [tool.sphinx]
 project = "eipi"
 author = "Eric Kweyunga"
-version = "0.0.2"
-release = "0.0.2"
+version = "0.0.3"
+release = "0.0.3"
 
 [tool.black]
 line-length = 88
